@@ -72,4 +72,8 @@ class Dog
         dog = DB[:conn].execute("SELECT * FROM dogs WHERE name = ? LIMIT 1", name)
         self.find_or_create_by(name: name, breed: nil)
     end
+
+    def update
+        
+    end
 end
