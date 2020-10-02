@@ -33,15 +33,53 @@ class Dog
         dog
     end
 
-    def save
-        sql = <<-SQL
-        INSERT INTO dogs (name, breed) VALUES (?, ?);
-        SQL
+    def self.new_from_db(row)
+        id = row[0]
+        name = row[1]
+        breed = row[2]
+        self.new(id: id, name: name, breed: breed)
+    end
 
-        DB[:conn].execute(sql, self.name, self.breed)
-        @id = DB[:conn].execute("SELECT last_insert_rowid() FROM dogs")[0][0]
-        self
+    def self.find_by_id(id_num)
+        dog_info = DB[:conn].execute("SELECT * FROM dogs WHERE id=?", id_num).flatten
+        self.new(id: dog_info[0], name: dog_info[1], breed: dog_info[2])
+    end
+
+    def self.find_or_create_by(name:, breed:)
+        dog = DB[:conn].execute("SELECT * FROM dogs WHERE name = ? AND breed = ?", name, breed)
+        if !dog.empty?
+            row = dog[0]
+            dog = self.new_from_db(row)
+        else
+            dog = self.create(name: name, breed: breed)
+        end
+        dog
+    end
+
+    def self.find_by_name(name)
+        dog = DB[:conn].execute("SELECT * FROM dogs WHERE name = ?", name).flatten
+        self.find_or_create_by(name: dog[1], breed: dog[2])
+    end
+
+    def save
+        if self.id 
+            self.update
+        else
+            sql = <<-SQL
+            INSERT INTO dogs (name, breed) VALUES (?, ?);
+            SQL
+
+            DB[:conn].execute(sql, self.name, self.breed)
+            @id = DB[:conn].execute("SELECT last_insert_rowid() FROM dogs")[0][0]
+            self
+        end
     end 
 
+    def update 
+        sql = <<-SQL 
+        UPDATE dogs SET name = ?, breed = ? WHERE id = ?
+        SQL
 
+        DB[:conn].execute(sql, self.name, self.breed, self.id)
+    end 
 end 
